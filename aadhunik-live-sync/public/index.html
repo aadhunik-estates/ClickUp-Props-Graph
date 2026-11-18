@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Aadhunik Estates – Inventory Explorer</title>
+<style>
+:root{--bg:#fff;--t:#2b2b2b;--g:#7d7d7d;--l:#f4f4f4;--bd:#e6e6e6;--o:#e8731a;--sh:#0000000d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--t);background:var(--bg)}
+.w{max-width:1100px;margin:auto;padding:22px 16px 60px}
+.logo{font-weight:700;letter-spacing:3px;color:var(--o);font-size:13px}h1{font-size:27px;margin:6px 0 2px;font-family:Georgia,serif;font-weight:600}.sub{color:var(--g);margin:0 0 18px}
+.tg{display:flex;gap:10px}.tg button{flex:1;padding:16px;border:1px solid var(--bd);background:var(--bg);border-radius:12px;font:600 16px system-ui,sans-serif;cursor:pointer;color:var(--t);transition:.2s}.tg button.on{background:var(--o);color:#fff;border-color:var(--o)}
+.f{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.f select,.f button{padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);font:inherit;color:var(--t);max-width:100%}
+.hint{color:var(--g);font-size:13px;margin:0 0 8px}
+.m{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;box-shadow:0 2px 8px var(--sh)}table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:12px 6px;text-align:center;border-bottom:1px solid var(--bd);font-size:13px}tr:last-child td{border-bottom:0}th{color:var(--g);font-weight:600}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--bg);font-weight:600;padding-left:12px;z-index:1}
+td.c{cursor:pointer;font-weight:700;color:var(--o);font-size:16px}td.c:hover{filter:brightness(.95)}td.z{color:#b5b5b5;background:var(--l)}td.sel{outline:2px solid var(--t);outline-offset:-2px}
+.p{margin-top:22px;animation:d .25s}@keyframes d{from{opacity:0;transform:translateY(-6px)}}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.ph b{color:var(--o)}
+.x{border:1px solid var(--bd);background:var(--bg);color:var(--t);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+.gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.cd{border:1px solid var(--bd);border-radius:14px;padding:16px;box-shadow:0 2px 8px var(--sh)}.cd h3{margin:0 0 4px;font-size:17px}
+.pr{color:var(--o);font-weight:700;font-size:19px;margin:8px 0}.mt{color:var(--g);font-size:13px}.ex{margin:10px 0;padding-top:10px;border-top:1px dashed var(--bd);font-size:13px}
+.bt{display:inline-block;margin-top:6px;padding:9px 14px;border-radius:8px;border:1px solid var(--o);color:var(--o);background:var(--bg);text-decoration:none;font:600 13px system-ui,sans-serif;cursor:pointer}.bt.wa{background:var(--o);color:#fff;margin-left:6px}
+.ts{color:var(--g);font-size:12px;margin-top:16px}
+</style></head><body><div class="w">
+<div class="logo">AADHUNIK ESTATES</div><h1>Explore Our Property Inventory</h1><p class="sub">Discover available properties across Gurgaon.</p>
+<div class="tg"><button id="bs">FOR SALE</button><button id="br">FOR RENT</button></div>
+<div id="app"></div></div>
+<script>
+const WA=''; // WhatsApp number with country code, e.g. '919999999999'. Leave empty to hide the button.
+let R=[],ASOF='',SIG='';
+const K={};
+// Price brackets – edit freely. Sale in ₹ Crore, Rent in ₹ per month. [from, to)
+const B={sale:[[0,2],[2,3],[3,4],[4,6],[6,7],[7,8],[8,10],[10,12],[12,15],[15,1e9]],rent:[[0,5e4],[5e4,75e3],[75e3,1e5],[1e5,15e4],[15e4,2e5],[2e5,3e5],[3e5,5e5],[5e5,1e12]]};
+const S={sec:'sale',sel:null,open:null,fp:'',fb:'',sort:''};
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>Math.round(n).toLocaleString('en-IN');
+const pf=p=>S.sec=='sale'?'₹'+(+p.toFixed(2))+' Cr':'₹'+inr(p)+' / Month';
+const u=v=>S.sec=='sale'?'₹'+v+' Cr':'₹'+inr(v);
+const bl=([a,b])=>a==0?'Below '+u(b):b>=1e9?'Above '+u(a):u(a)+'–'+u(b).replace('₹','');
+const unit=i=>(i.kind=='Plot'||i.kind=='Kothi'||(i.kind=='Builder Floor'&&i.size<800))?'sq yd':'sq ft';
+function draw(){
+  $('bs').className=S.sec=='sale'?'on':'';$('br').className=S.sec=='rent'?'on':'';
+  const all=R.filter(i=>i.sec==S.sec),A=all.filter(i=>(!S.fp||i.project==S.fp)&&(!S.fb||i.bhk==S.fb)),bk=B[S.sec];
+  const kinds=[...new Set(all.map(i=>i.kind))].sort(),opt=(k,l)=>[...new Set(all.map(i=>i[k]).filter(Boolean))].sort().map(v=>`<option ${v==l?'selected':''}>${esc(v)}</option>`).join('');
+  const cnt=(k,b)=>A.filter(i=>i.kind==k&&i.price>=b[0]&&i.price<b[1]).length,mx=Math.max(1,...kinds.flatMap(k=>bk.map(b=>cnt(k,b))));
+  let h=`<div class="f"><select id="fp"><option value="">All projects</option>${opt('project',S.fp)}</select><select id="fb"><option value="">Any configuration</option>${opt('bhk',S.fb)}</select><select id="so"><option value="">Sort: Default</option><option value="a" ${S.sort=='a'?'selected':''}>Price: Low to High</option><option value="d" ${S.sort=='d'?'selected':''}>Price: High to Low</option></select><button id="cl">CLEAR FILTERS</button></div><p class="hint">Tap a number to see the properties in that price range.</p>`;
+  h+='<div class="m"><table><tr><th>Property type</th>'+bk.map(b=>`<th>${esc(bl(b))}</th>`).join('')+'</tr>'+kinds.map(k=>'<tr><td>'+esc(k)+'</td>'+bk.map((b,j)=>{const n=cnt(k,b),sel=S.sel&&S.sel[0]==k&&S.sel[1]==j;return n?`<td class="c ${sel?'sel':''}" data-k="${esc(k)}" data-j="${j}" style="background:color-mix(in srgb,var(--o) ${Math.round(12+38*n/mx)}%,transparent)">${n}</td>`:'<td class="z">0</td>'}).join('')+'</tr>').join('')+'</table></div>';
+  if(S.sel){const [k,j]=S.sel,b=bk[j];let L=A.filter(i=>i.kind==k&&i.price>=b[0]&&i.price<b[1]);
+    if(S.sort=='a')L.sort((x,y)=>x.price-y.price);if(S.sort=='d')L.sort((x,y)=>y.price-x.price);
+    h+=`<div class="p" id="pn"><div class="ph"><div>Selected: <b>${esc(k)}</b> · <b>${esc(bl(b))}</b> · ${L.length} available option${L.length==1?'':'s'}</div><button class="x" id="cx">Close ✕</button></div>`+(L.length?'<div class="gr">'+L.map(card).join('')+'</div>':'<p>No properties available in this price range.</p>')+'</div>';}
+  h+=`<div class="ts">Inventory updated: ${ASOF}</div>`;
+  $('app').innerHTML=h;
+  $('fp').onchange=e=>{S.fp=e.target.value;draw()};$('fb').onchange=e=>{S.fb=e.target.value;draw()};$('so').onchange=e=>{S.sort=e.target.value;draw()};
+  $('cl').onclick=()=>{S.fp=S.fb=S.sort='';draw()};if($('cx'))$('cx').onclick=()=>{S.sel=null;S.open=null;draw()};
+  document.querySelectorAll('td.c').forEach(td=>td.onclick=()=>{S.sel=[td.dataset.k,+td.dataset.j];S.open=null;draw();$('pn').scrollIntoView({behavior:'smooth'})});
+  document.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{S.open=S.open==b.dataset.o?null:b.dataset.o;draw()});
+}
+function card(i){const o=S.open==i.id,msg=encodeURIComponent(`Hi, I’m interested in ${i.project} (${pf(i.price)}).`),sz=i.size?inr(i.size)+' '+unit(i):'';
+  return `<div class="cd"><h3>${esc(i.project)}</h3><div class="mt">${esc(i.kind)}${i.bhk?' · '+esc(i.bhk):''}${sz?' · '+sz:''}</div><div class="pr">${esc(pf(i.price))}</div>`+
+  (o?`<div class="ex">${[['Property type',i.kind],['Configuration',i.bhk],['Size',sz],['Project',i.project],['Price',pf(i.price)]].filter(r=>r[1]).map(r=>`<div><span class="mt">${r[0]}:</span> ${esc(r[1])}</div>`).join('')}</div>`:'')+
+  `<button class="bt" data-o="${i.id}">${o?'HIDE DETAILS':'VIEW DETAILS'}</button>`+(WA?`<a class="bt wa" target="_blank" rel="noopener" href="https://wa.me/${WA}?text=${msg}">WhatsApp</a>`:'')+'</div>'}
+$('bs').onclick=()=>{S.sec='sale';S.sel=S.open=null;S.fp=S.fb='';draw()};$('br').onclick=()=>{S.sec='rent';S.sel=S.open=null;S.fp=S.fb='';draw()};
+async function load(first){try{const r=await fetch('/api/inventory'),j=await r.json();if(!r.ok)throw new Error(j.error||'error');const sig=JSON.stringify(j.items);ASOF=new Date(j.updated).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});if(sig===SIG&&!first)return;SIG=sig;R=j.items.map((x,i)=>({...x,id:i}));draw()}catch(e){if(first)$('app').innerHTML='<p>Inventory could not be loaded. Please try again.</p>'}}
+$('app').innerHTML='<p class="hint">Loading inventory…</p>';$('bs').className='on';load(true);
+setInterval(()=>load(false),3e5);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load(false)});
+</script></body></html>
